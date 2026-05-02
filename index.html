@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>変体仮名コンバーター</title>
+
+  <style>
+    @font-face {
+      font-family: "HentaiganaFont";
+      src: url("./hentaigana.otf") format("opentype");
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 2rem;
+    }
+
+    textarea {
+      width: 100%;
+      height: 8rem;
+      font-size: 1.5rem;
+      padding: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    button {
+      margin-top: 1rem;
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+    }
+
+    #output {
+      font-family: "HentaiganaFont", serif;
+      font-size: 3rem;
+      line-height: 1.8;
+      margin-top: 2rem;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      height: 600px;
+      width: 420px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .glyph {
+      cursor: pointer;
+    }
+
+    .glyph:hover {
+      background: #eee;
+    }
+
+    #info {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      min-height: 2rem;
+    }
+
+    #status {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>変体仮名コンバーター</h1>
+
+  <div id="status">checking font...</div>
+
+  <textarea id="input" placeholder="ひらがなを入力してください"></textarea>
+
+  <br>
+  <button id="rerender">別の字形で再表示</button>
+
+  <div id="info">字をクリックすると、元のかな・字母が表示されます。</div>
+
+  <div id="output"></div>
+
+  <script>
+    const map = {
+      "あ": [
+        { glyph: "𛀂", source: "安" },
+        { glyph: "𛀃", source: "愛" },
+        { glyph: "𛀄", source: "阿" }
+      ],
+      "い": [
+        { glyph: "𛀆", source: "以" },
+        { glyph: "𛀇", source: "伊" }
+      ],
+      "う": [
+        { glyph: "𛀒", source: "宇" },
+        { glyph: "𛀓", source: "憂" }
+      ],
+      "え": [
+        { glyph: "𛀁", source: "衣" },
+        { glyph: "𛀋", source: "盈" }
+      ],
+      "お": [
+        { glyph: "𛀕", source: "於" },
+        { glyph: "𛀖", source: "隱" }
+      ],
+
+      "か": [
+        { glyph: "𛀘", source: "加" },
+        { glyph: "𛀙", source: "可" },
+        { glyph: "𛀚", source: "嘉" }
+      ],
+      "き": [
+        { glyph: "𛀛", source: "幾" },
+        { glyph: "𛀜", source: "支" },
+        { glyph: "𛀝", source: "木" }
+      ],
+      "く": [
+        { glyph: "𛀢", source: "久" },
+        { glyph: "𛀣", source: "具" },
+        { glyph: "𛀤", source: "倶" }
+      ],
+      "け": [
+        { glyph: "𛀳", source: "介" },
+        { glyph: "𛀴", source: "希" },
+        { glyph: "𛀵", source: "氣" }
+      ],
+      "こ": [
+        { glyph: "𛀸", source: "己" },
+        { glyph: "𛀹", source: "古" },
+        { glyph: "𛀺", source: "故" }
+      ],
+
+      "さ": [
+        { glyph: "𛁂", source: "左" },
+        { glyph: "𛁃", source: "差" },
+        { glyph: "𛁄", source: "散" }
+      ],
+      "し": [
+        { glyph: "𛁈", source: "之" },
+        { glyph: "𛁉", source: "事" },
+        { glyph: "𛁊", source: "四" }
+      ],
+      "す": [
+        { glyph: "𛁑", source: "寸" },
+        { glyph: "𛁒", source: "數" },
+        { glyph: "𛁓", source: "春" }
+      ],
+      "せ": [
+        { glyph: "𛁛", source: "世" },
+        { glyph: "𛁜", source: "勢" },
+        { glyph: "𛁝", source: "聲" }
+      ],
+      "そ": [
+        { glyph: "𛁞", source: "所" },
+        { glyph: "𛁟", source: "楚" }
+      ],
+
+      "た": [
+        { glyph: "𛁠", source: "多" },
+        { glyph: "𛁡", source: "堂" },
+        { glyph: "𛁢", source: "當" }
+      ],
+      "ち": [
+        { glyph: "𛁩", source: "千" },
+        { glyph: "𛁪", source: "地" },
+        { glyph: "𛁫", source: "智" }
+      ],
+      "つ": [
+        { glyph: "𛁮", source: "川" },
+        { glyph: "𛁯", source: "徒" },
+        { glyph: "𛁰", source: "都" }
+      ],
+      "て": [
+        { glyph: "𛁶", source: "天" },
+        { glyph: "𛁷", source: "帝" },
+        { glyph: "𛁸", source: "弖" }
+      ],
+      "と": [
+        { glyph: "𛁻", source: "止" },
+        { glyph: "𛁼", source: "登" },
+        { glyph: "𛁽", source: "等" }
+      ],
+
+      "な": [
+        { glyph: "𛂂", source: "奈" },
+        { glyph: "𛂃", source: "那" },
+        { glyph: "𛂄", source: "難" }
+      ],
+      "に": [
+        { glyph: "𛂇", source: "仁" },
+        { glyph: "𛂈", source: "二" },
+        { glyph: "𛂉", source: "爾" }
+      ],
+      "ぬ": [
+        { glyph: "𛂏", source: "奴" },
+        { glyph: "𛂐", source: "怒" }
+      ],
+      "ね": [
+        { glyph: "𛂕", source: "年" },
+        { glyph: "𛂖", source: "祢" },
+        { glyph: "𛂗", source: "禰" }
+      ],
+      "の": [
+        { glyph: "𛂚", source: "乃" },
+        { glyph: "𛂛", source: "能" },
+        { glyph: "𛂜", source: "農" }
+      ],
+
+      "は": [
+        { glyph: "𛂞", source: "波" },
+        { glyph: "𛂟", source: "者" },
+        { glyph: "𛂠", source: "盤" }
+      ],
+      "ひ": [
+        { glyph: "𛂪", source: "比" },
+        { glyph: "𛂫", source: "悲" },
+        { glyph: "𛂬", source: "飛" }
+      ],
+      "ふ": [
+        { glyph: "𛂭", source: "不" },
+        { glyph: "𛂮", source: "婦" },
+        { glyph: "𛂯", source: "布" }
+      ],
+      "へ": [
+        { glyph: "𛂶", source: "倍" },
+        { glyph: "𛂷", source: "弊" },
+        { glyph: "𛂸", source: "遍" }
+      ],
+      "ほ": [
+        { glyph: "𛂹", source: "保" },
+        { glyph: "𛂺", source: "報" },
+        { glyph: "𛂻", source: "奉" }
+      ],
+
+      "ま": [
+        { glyph: "𛃆", source: "末" },
+        { glyph: "𛃇", source: "萬" },
+        { glyph: "𛃈", source: "満" }
+      ],
+      "み": [
+        { glyph: "𛃍", source: "三" },
+        { glyph: "𛃎", source: "微" },
+        { glyph: "𛃏", source: "美" }
+      ],
+      "む": [
+        { glyph: "𛃘", source: "武" },
+        { glyph: "𛃙", source: "無" }
+      ],
+      "め": [
+        { glyph: "𛃚", source: "免" },
+        { glyph: "𛃛", source: "面" }
+      ],
+      "も": [
+        { glyph: "𛃟", source: "毛" },
+        { glyph: "𛃠", source: "母" },
+        { glyph: "𛃡", source: "裳" }
+      ],
+
+      "や": [
+        { glyph: "𛃢", source: "也" },
+        { glyph: "𛃣", source: "夜" },
+        { glyph: "𛃤", source: "耶" }
+      ],
+      "ゆ": [
+        { glyph: "𛃦", source: "由" },
+        { glyph: "𛃧", source: "遊" }
+      ],
+      "よ": [
+        { glyph: "𛃩", source: "与" },
+        { glyph: "𛃪", source: "餘" }
+      ],
+
+      "ら": [
+        { glyph: "𛃫", source: "羅" },
+        { glyph: "𛃬", source: "良" }
+      ],
+      "り": [
+        { glyph: "𛃯", source: "利" },
+        { glyph: "𛃰", source: "梨" }
+      ],
+      "る": [
+        { glyph: "𛃱", source: "留" },
+        { glyph: "𛃲", source: "流" }
+      ],
+      "れ": [
+        { glyph: "𛃵", source: "礼" },
+        { glyph: "𛃶", source: "連" },
+        { glyph: "𛃷", source: "麗" }
+      ],
+      "ろ": [
+        { glyph: "𛃺", source: "呂" },
+        { glyph: "𛃻", source: "路" }
+      ],
+
+      "わ": [
+        { glyph: "𛃾", source: "和" },
+        { glyph: "𛃿", source: "王" }
+      ],
+      "ゐ": [
+        { glyph: "𛀆", source: "井" }
+      ],
+      "ゑ": [
+        { glyph: "𛀁", source: "惠" }
+      ],
+      "を": [
+        { glyph: "𛃜", source: "遠" },
+        { glyph: "𛃝", source: "乎" }
+      ],
+      "ん": [
+        { glyph: "𛃻", source: "无" }
+      ]
+    };
+
+    const smallKanaMap = {
+      "ぁ": "あ", "ぃ": "い", "ぅ": "う", "ぇ": "え", "ぉ": "お",
+      "ゃ": "や", "ゅ": "ゆ", "ょ": "よ", "っ": "つ"
+    };
+
+    const input = document.getElementById("input");
+    const output = document.getElementById("output");
+    const info = document.getElementById("info");
+    const status = document.getElementById("status");
+    const rerenderButton = document.getElementById("rerender");
+
+    function chooseRandom(array) {
+      return array[Math.floor(Math.random() * array.length)];
+    }
+
+    function getBaseKana(char) {
+      const normalized = char.normalize("NFD");
+      const base = normalized[0];
+      return smallKanaMap[base] || base;
+    }
+
+    function getMarks(char) {
+      return char.normalize("NFD").slice(1);
+    }
+
+    function render() {
+      output.innerHTML = "";
+
+      for (const char of [...input.value]) {
+        const base = getBaseKana(char);
+        const marks = getMarks(char);
+
+        if (map[base]) {
+          const choice = chooseRandom(map[base]);
+
+          const span = document.createElement("span");
+          span.className = "glyph";
+          span.textContent = choice.glyph + marks;
+          span.dataset.kana = char;
+          span.dataset.base = base;
+          span.dataset.source = choice.source;
+          span.dataset.glyph = choice.glyph;
+
+          span.addEventListener("click", () => {
+            info.textContent =
+              `かな: ${span.dataset.kana}　字母: ${span.dataset.source}　字形: ${span.dataset.glyph}`;
+          });
+
+          output.appendChild(span);
+        } else {
+          output.appendChild(document.createTextNode(char));
+        }
+      }
+    }
+
+    input.addEventListener("input", render);
+    rerenderButton.addEventListener("click", render);
+
+    document.fonts.load("32px HentaiganaFont")
+      .then(() => status.textContent = "Font loaded.")
+      .catch(() => status.textContent = "Font failed to load.");
+  </script>
+
+</body>
+</html>
